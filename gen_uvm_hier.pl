@@ -355,7 +355,7 @@ my $act_port        =   'act_port';
             &task_func_declare($fh_dst,'function void','connect_phase','uvm_phase phase');
         &print_class_end($fh_dst);
         &agent_bulid_phase($fh_dst);
-        &agent_main_phase($fh_dst);
+        &agent_connect_phase($fh_dst);
     }
 #********************************************************************************#
     sub gen_uvm_driver
@@ -902,3 +902,220 @@ my $act_port        =   'act_port';
         print ($fh_dst "/","*" x 80,"\n");#打印分隔符
         print ($fh_dst "\n");#打印换行
     }
+#********************************************************************************#
+    sub clock_and_reset 
+    {
+        (my $fh_dst) = @_;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "reg $clk;\n");
+        print ($fh_dst "reg $reset;\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "initial\n");
+        print ($fh_dst "begin\n");
+        print ($fh_dst "\t$clk=1'b0;\n");
+        print ($fh_dst "\tforever #10 $clk=~$clk;\n");
+        print ($fh_dst "end\n");
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "initial\n");
+        print ($fh_dst "begin\n");
+        print ($fh_dst "\t$reset=1'b1;\n");
+        print ($fh_dst "\t#10 $reset=1'b0;\n");
+        print ($fh_dst "\t#400 $reset=1'b1;\n");
+        print ($fh_dst "end\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub dut_instantize 
+    {
+        my $fh_src=shift;
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\t$m_dut $i_dut \(\n");
+        seek($fh_src,0,0); 
+        while(<$fh_src>)
+        {
+            chomp;
+            if(/^\s*\/\//)
+            {
+                next;
+            }
+            elsif(/input\s*(?:\[.*\])?\s*(\w+)\s*;/)
+            {
+                print($fh_dst "\t\.$1\($i_drv_dut_if\.$1\),\n");
+            }
+            elsif(/output\s*(?:\[.*\])?\s*(\w+)\s*;/)
+            {
+                print($fh_dst "\t\.$1\($i_dut_mon_if\.$1\),\n");
+            }
+        }
+        my $pos = tell($fh_dst);
+        my $pos_coma = $pos - 2;
+        seek($fh_dst,$pos_coma,0) or die
+        print ($fh_dst "\);\n");
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+    }
+#********************************************************************************#
+    sub interface_connect_and_run_test 
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "initial\n");
+        print ($fh_dst "begin\n");
+        print ($fh_dst "\tuvm_config_db#(virtual $c_drv_dut_if)::set(null,\"uvm_test_top.$i_env.$i_agt1.$i_drv\",\"vif\",$i_drv_dut_if\);\n");
+        print ($fh_dst "\tuvm_config_db#(virtual $c_dut_mon_if)::set(null,\"uvm_test_top.$i_env.$i_agt2.$i_mon\",\"vif\",$i_dut_mon_if\);\n");
+        print ($fh_dst "\trun_test();\n");
+        print ($fh_dst "end\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub demo_test_bulid_phase 
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\tfunction void $c_demo_test\:\:build_phase(uvm_phase phase);\n");
+        print ($fh_dst "\t\tsuper.build_phase(phase);\n");
+        print ($fh_dst "\t\tuvm_config_db#(uvm_object_wrapper)::set(this,\n");
+        print ($fh_dst "\t\t                                         \"$i_env.$i_agt1.$i_sqr.main_phase\",\n");
+        print ($fh_dst "\t\t                                         \"default_sequence\",\n");
+        print ($fh_dst "\t\t                                         $c_demo_seq\:\:type_id\:\:get());\n");
+        print ($fh_dst "\tendfunction\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub base_test_bulid_phase 
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\tfunction void $c_base_test\:\:build_phase(uvm_phase phase);\n");
+        print ($fh_dst "\t\tsuper.build_phase(phase);\n");
+        print ($fh_dst "\t\t$i_env = $c_env:\:type_id::create(\"$i_env\",this);\n");
+        print ($fh_dst "\tendfunction\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub driver_bulid_phase 
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\tfunction void $c_drv\:\:build_phase(uvm_phase phase);\n");
+        print ($fh_dst "\t\tap=new(\"ap\",this);\n");
+        print ($fh_dst "\t\tsuper.build_phase(phase);\n");
+        print ($fh_dst "\t\tif(!uvm_config_db#(virtual $c_drv_dut_if)::get(this,\"\",\"vif\",$i_drv_dut_if))\n");
+        print ($fh_dst "\t\t\t`uvm_info(\"GETVIF\",\"cannot get $i_drv_dut_if !!!\",UVM_LOW)\n");
+        print ($fh_dst "\tendfunction\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub monitor_bulid_phase 
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\tfunction void $c_mon\:\:build_phase(uvm_phase phase);\n");
+        print ($fh_dst "\t\tap=new(\"ap\",this);\n");
+        print ($fh_dst "\t\tsuper.build_phase(phase);\n");
+        print ($fh_dst "\t\tif(!uvm_config_db#(virtual $c_dut_mon_if)::get(this,\"\",\"vif\",$i_dut_mon_if))\n");
+        print ($fh_dst "\t\t\t`uvm_fatal(\"$c_mon\",\"cannot get vif !!!\")\n");
+        print ($fh_dst "\t\t`uvm_info(\"$c_mon\",\"$c_mon is called\",UVM_LOW)\n");
+        print ($fh_dst "\tendfunction\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub agent_bulid_phase 
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\tfunction void $c_agt\:\:build_phase(uvm_phase phase);\n");
+        print ($fh_dst "\t\tsuper.build_phase(phase);\n");
+        print ($fh_dst "\t\t$i_drv_ap=new(\"$i_drv_ap\",this);\n");
+        print ($fh_dst "\t\t$i_mon_ap=new(\"$i_mon_ap\",this);\n");
+        print ($fh_dst "\t\tif(is_active==UVM_ACTIVE)\n");
+        print ($fh_dst "\t\tbegin\n");
+        print ($fh_dst "\t\t\t$i_sqr = $c_sqr:\:type_id::create(\"$i_sqr\",this);\n");
+        print ($fh_dst "\t\t\t$i_drv = $c_drv\:type_id::create(\"$i_drv\",this);\n");
+        print ($fh_dst "\t\tend\n");
+        print ($fh_dst "\t\telse\n");
+        print ($fh_dst "\t\tbegin\n");
+        print ($fh_dst "\t\t\t$i_mon = $c_mon\:type_id::create(\"$i_mon\",this);\n");
+        print ($fh_dst "\t\tend\n");
+        print ($fh_dst "\tendfunction\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub model_bulid_phase 
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\tfunction void $c_mdl\:\:build_phase(uvm_phase phase);\n");
+        print ($fh_dst "\t\tsuper.build_phase(phase);\n");
+        print ($fh_dst "\t\tport=new(\"port\",this);\n");
+        print ($fh_dst "\t\tap=new(\"ap\",this);\n");
+        print ($fh_dst "\tendfunction\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub scoreboard_bulid_phase
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\tfunction void $c_scb\:\:build_phase(uvm_phase phase);\n");
+        print ($fh_dst "\t\tsuper.build_phase(phase);\n");
+        print ($fh_dst "\t\t\t`uvm_info(\"$c_scb\",\"scoreboard build_phase is called\",UVM_LOW)\n");
+        print ($fh_dst "\t\t$exp_port=new(\"$exp_port\",this);\n");
+        print ($fh_dst "\t\t$act_port=new(\"$act_port\",this);\n");
+        print ($fh_dst "\tendfunction\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub agent_connect_phase
+    {
+        my $fh_dst=shift;
+        print ($fh_dst "\n");#打印换行
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\tfunction void $c_agt\:\:connect_phase(uvm_phase phase);\n");
+        print ($fh_dst "\t\tsuper.connect_phase(phase);\n");
+        print ($fh_dst "\t\tif(is_active==UVM_ACTIVE)\n");
+        print ($fh_dst "\t\tbegin\n");
+        print ($fh_dst "\t\t\t$i_drv.seq_item_port.connect($i_sqr.seq_item_export);\n");
+        print ($fh_dst "\t\t\t$i_drv_ap = $i_drv.ap;\n");
+        print ($fh_dst "\t\tend\n");
+        print ($fh_dst "\t\telse\n");
+        print ($fh_dst "\t\tbegin\n");
+        print ($fh_dst "\t\t\t$i_mon_ap = $i_mon.ap;\n");
+        print ($fh_dst "\t\tend\n");
+        print ($fh_dst "\tendfunction\n");
+        print ($fh_dst "/","*" x 80,"\n");#打印分隔符
+        print ($fh_dst "\n");#打印换行
+    }
+#********************************************************************************#
+    sub task_func_declare
+    {
+        my $fh_dst=shift;
+        my $task_or_func=shift;
+        my $name=shift;
+        my $args=shift;
+        print ($fh_dst "\textern virtual $task_or_func $name($args);\n");
+    }
+#********************************************************************************#
